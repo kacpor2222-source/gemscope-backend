@@ -1,15 +1,18 @@
-import express from "express";
-import cors from "cors";
-import axios from "axios";
-
-const app = express(); // 🔥 TO BRAKOWAŁO
-app.use(cors());
-
-app.get("/", (req, res) => {
-  res.send("GemScope backend działa 🚀");
-});
+let cache = null;
+let lastFetch = 0;
 
 app.get("/prices", async (req, res) => {
+  const now = Date.now();
+
+  // 🔥 cache 2 minuty
+  if (cache && now - lastFetch < 120000) {
+    return res.json({
+      success: true,
+      source: "cache",
+      data: cache
+    });
+  }
+
   try {
     const response = await axios.get("https://db.biggames.io/", {
       headers: {
@@ -18,21 +21,20 @@ app.get("/prices", async (req, res) => {
       timeout: 10000
     });
 
+    cache = response.data;
+    lastFetch = Date.now();
+
     res.json({
       success: true,
-      raw: response.data
+      source: "live",
+      data: cache
     });
 
   } catch (err) {
     res.json({
       success: false,
-      error: err.message
+      error: err.message,
+      note: "Big Games rate limit (429)"
     });
   }
-});
-
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log("Server działa na porcie", PORT);
 });
