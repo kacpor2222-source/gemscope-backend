@@ -1,38 +1,36 @@
 import express from "express";
-import cors from "cors";
 import axios from "axios";
 
 const app = express();
-app.use(cors());
+const PORT = process.env.PORT || 3000;
 
-app.get("/", (req, res) => {
-  res.send("GemScope działa 🚀");
-});
+let cache = null;
+let lastFetch = 0;
 
-app.get("/prices", async (req, res) => {
+async function getData() {
+  const now = Date.now();
+
+  // cache na 10 minut (ważne żeby nie było 429)
+  if (cache && now - lastFetch < 10 * 60 * 1000) {
+    return cache;
+  }
+
+  const res = await axios.get("https://db.biggames.io/config/Pets");
+  cache = res.data;
+  lastFetch = now;
+
+  return cache;
+}
+
+app.get("/pets", async (req, res) => {
   try {
-    const response = await axios.get("https://db.biggames.io/", {
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-        "Accept": "text/html"
-      },
-      timeout: 10000
-    });
-
-    res.json({
-      success: true,
-      data: response.data
-    });
-
-  } catch (err) {
-    res.json({
-      success: false,
-      error: err.message
-    });
+    const data = await getData();
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ error: "API error", details: e.message });
   }
 });
 
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log("Server działa na", PORT);
+  console.log("Server running on", PORT);
 });
