@@ -2,35 +2,31 @@ import express from "express";
 import axios from "axios";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 let cache = null;
-let lastFetch = 0;
+let lastTime = 0;
 
-async function getData() {
+const CACHE_TIME = 60 * 1000; // 60 sekund
+
+app.get("/prices", async (req, res) => {
   const now = Date.now();
 
-  // cache na 10 minut (ważne żeby nie było 429)
-  if (cache && now - lastFetch < 10 * 60 * 1000) {
-    return cache;
+  if (cache && now - lastTime < CACHE_TIME) {
+    return res.json(cache);
   }
 
-  const res = await axios.get("https://db.biggames.io/config/Pets");
-  cache = res.data;
-  lastFetch = now;
-
-  return cache;
-}
-
-app.get("/pets", async (req, res) => {
   try {
-    const data = await getData();
-    res.json(data);
+    const r = await axios.get("https://db.biggames.io/api");
+
+    cache = r.data;
+    lastTime = now;
+
+    res.json(cache);
   } catch (e) {
-    res.status(500).json({ error: "API error", details: e.message });
+    res.json({ error: "API error", msg: e.message });
   }
 });
 
-app.listen(PORT, () => {
-  console.log("Server running on", PORT);
+app.listen(3000, () => {
+  console.log("OK");
 });
