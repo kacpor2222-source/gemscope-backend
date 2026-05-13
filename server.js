@@ -1,32 +1,31 @@
 import express from "express";
-import axios from "axios";
+import cors from "cors";
 
 const app = express();
+app.use(cors());
 
 let cache = null;
-let lastTime = 0;
+let lastFetch = 0;
 
-const CACHE_TIME = 60 * 1000; // 60 sekund
-
-app.get("/prices", async (req, res) => {
-  const now = Date.now();
-
-  if (cache && now - lastTime < CACHE_TIME) {
-    return res.json(cache);
-  }
-
+app.get("/", async (req, res) => {
   try {
-    const r = await axios.get("https://db.biggames.io/api");
+    const now = Date.now();
 
-    cache = r.data;
-    lastTime = now;
+    if (cache && now - lastFetch < 60000) {
+      return res.json(cache);
+    }
 
-    res.json(cache);
+    const response = await fetch("https://db.biggames.io/prices");
+    const data = await response.json();
+
+    cache = data;
+    lastFetch = now;
+
+    res.json(data);
   } catch (e) {
-    res.json({ error: "API error", msg: e.message });
+    res.json({ error: e.message });
   }
 });
 
-app.listen(3000, () => {
-  console.log("OK");
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log("RUNNING"));
