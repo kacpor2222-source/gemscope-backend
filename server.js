@@ -1,23 +1,15 @@
-import express from "express";
-import cors from "cors";
-import axios from "axios";
-
-const app = express();
-app.use(cors());
-
-// test endpoint
-app.get("/", (req, res) => {
-  res.send("GemScope backend działa 🚀");
-});
-
-// API proxy
 app.get("/prices", async (req, res) => {
   try {
-    const response = await axios.get("https://db.biggames.io/");
+    const response = await axios.get("https://db.biggames.io/", {
+      headers: {
+        "User-Agent": "Mozilla/5.0"
+      },
+      timeout: 10000
+    });
 
     res.json({
       success: true,
-      data: response.data
+      raw: response.data
     });
 
   } catch (err) {
@@ -26,10 +18,4 @@ app.get("/prices", async (req, res) => {
       error: err.message
     });
   }
-});
-
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, () => {
-  console.log("Server działa na porcie", PORT);
 });
