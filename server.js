@@ -1,40 +1,38 @@
-let cache = null;
-let lastFetch = 0;
+import express from "express";
+import cors from "cors";
+import axios from "axios";
+
+const app = express();
+app.use(cors());
+
+app.get("/", (req, res) => {
+  res.send("GemScope działa 🚀");
+});
 
 app.get("/prices", async (req, res) => {
-  const now = Date.now();
-
-  // 🔥 cache 2 minuty
-  if (cache && now - lastFetch < 120000) {
-    return res.json({
-      success: true,
-      source: "cache",
-      data: cache
-    });
-  }
-
   try {
     const response = await axios.get("https://db.biggames.io/", {
       headers: {
-        "User-Agent": "Mozilla/5.0"
+        "User-Agent": "Mozilla/5.0",
+        "Accept": "text/html"
       },
       timeout: 10000
     });
 
-    cache = response.data;
-    lastFetch = Date.now();
-
     res.json({
       success: true,
-      source: "live",
-      data: cache
+      data: response.data
     });
 
   } catch (err) {
     res.json({
       success: false,
-      error: err.message,
-      note: "Big Games rate limit (429)"
+      error: err.message
     });
   }
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log("Server działa na", PORT);
 });
